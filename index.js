@@ -57,16 +57,23 @@ function lightsAreEqual(a, b) {
   return true;
 }
 
-function updateLightValues(from, to) {
-  var tempLights = from;
-  var transitionInterval = setInterval(function () {
-    tempLights = getTransitionLights(tempLights, to);
-    updateLEDLights(tempLights);
-    if (lightsAreEqual(tempLights, to)) {
-      clearInterval(transitionInterval);
+const updateLightValues = (function () {
+  let transitionInterval = null;
+  return function (from, to) {
+    if (transitionInterval) {
+      return;
     }
-  }, 50);
-}
+
+    let tempLights = from;
+    transitionInterval = setInterval(function () {
+      tempLights = getTransitionLights(tempLights, to);
+      updateLEDLights(tempLights);
+      if (lightsAreEqual(tempLights, to)) {
+        clearInterval(transitionInterval);
+      }
+    }, 50);
+  };
+}());
 
 (function start() {
   setInterval(function () {
