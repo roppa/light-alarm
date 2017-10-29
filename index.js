@@ -1,8 +1,24 @@
 SPI2.setup({ baud: 3200000, mosi: B15 });
 
-const sunsetLights = (function () {
+/*
+* Config
+*/
+
+const totalLEDs = 25;
+
+/*
+* Light Arrays
+*/
+
+const offLights = (function () {
+  var lights = new Array(totalLEDs * 3);
+  lights.fill(0);
+  return lights;
+}());
+
+const duskDawnLights = (function () {
   var lights = [];
-  for (var i = 0; i < 25; i++) {
+  for (var i = 0; i < totalLEDs; i++) {
     lights.push(255, 10, 10);
   }
 
@@ -11,28 +27,56 @@ const sunsetLights = (function () {
 
 const daylights = (function () {
   var lights = [];
-  for (var i = 0; i < 25; i++) {
+  for (var i = 0; i < totalLEDs; i++) {
     lights.push(150, 255, 255);
   }
 
   return lights;
 }());
 
-function randomFireLights() {
+const randomFireLights = (function () {
   var colours = [[255, 0, 0], [255, 10, 10], [200, 10, 0], [180, 5, 10], [150, 20, 0]];
-  var lights = [];
-  for (var i = 0; i < 25; i++) {
-    lights = lights.concat(colours[Math.floor(Math.random() * colours.length)]);
-  }
+  return () => {
+    var lights = [];
+    for (var i = 0; i < totalLEDs; i++) {
+      lights = lights.concat(colours[Math.floor(Math.random() * colours.length)]);
+    }
 
-  return lights;
-}
+    return lights;
+  };
+}());
+
+/*
+* Light algorithms/functions
+*/
+
+const playFireLights = () => {
+  const interval = setInterval(() => {
+      updateLEDLights(randomFireLights());
+    }, 200);
+
+  return interval;
+};
+
+const playOffLights = () => updateLEDLights(offLights);
+
+const playDuskDawnLights = () => updateLEDLights(duskDawnLights);
+
+const playDaylights = () => updateLEDLights(daylights);
+
+/*
+* LED light controls
+*/
 
 function updateLEDLights(lights) {
   SPI2.send4bit(lights, 0b0001, 0b0011);
 }
 
-function getTransitionLights(lightsFrom, lightsTo) {
+/*
+* Utils
+*/
+
+function getLightTransitionValues(lightsFrom, lightsTo) {
   var transitionLights = [];
   for (var i = 0; i < lightsFrom.length; i++) {
     if (lightsFrom[i] < lightsTo[i]) {
@@ -57,26 +101,40 @@ function lightsAreEqual(a, b) {
   return true;
 }
 
-const updateLightValues = (function () {
+const transitionLightValues = (function () {
   let transitionInterval = null;
   return function (from, to) {
     if (transitionInterval) {
-      return;
+      return transitionInterval;
     }
 
     let tempLights = from;
     transitionInterval = setInterval(function () {
-      tempLights = getTransitionLights(tempLights, to);
+      tempLights = getLightTransitionValues(tempLights, to);
       updateLEDLights(tempLights);
       if (lightsAreEqual(tempLights, to)) {
         clearInterval(transitionInterval);
+        transitionInterval = null;
       }
-    }, 50);
+    }, 100);
   };
 }());
 
-(function start() {
-  setInterval(function () {
-    updateLEDLights(randomFireLights());
-  }, 200);
+(function init() {
+  setWatch((function () {
+    const states = [playDuskDawnLights, playDaylights, playFireLights,
+      playDuskDawnLights, playOffLights,
+    ];
+    let currentStateIndex = 0;
+    let interval = null;
+
+    return () => {
+      if (Boolean(interval)) {
+        clearInterval(interval);
+      }
+
+      interval = states[currentStateIndex]();
+      currentStateIndex = (currentStateIndex + 1 >= states.length) ? 0 : currentStateIndex + 1;
+    };
+  }()), BTN, { edge: 'rising', repeat: true, debounce: 10 });
 }());
