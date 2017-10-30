@@ -35,7 +35,9 @@ const daylights = (function () {
 }());
 
 const randomFireLights = (function () {
-  var colours = [[255, 0, 0], [255, 10, 10], [200, 10, 0], [180, 5, 10], [150, 20, 0]];
+  var colours = [
+    [255, 0, 0], [255, 10, 10], [200, 10, 0], [180, 5, 10], [150, 20, 0], [130, 20, 0],
+  ];
   return () => {
     var lights = [];
     for (var i = 0; i < totalLEDs; i++) {
@@ -51,11 +53,9 @@ const randomFireLights = (function () {
 */
 
 const playFireLights = () => {
-  const interval = setInterval(() => {
+  setInterval(() => {
       updateLEDLights(randomFireLights());
-    }, 200);
-
-  return interval;
+    }, 75);
 };
 
 const playOffLights = () => updateLEDLights(offLights);
@@ -113,28 +113,22 @@ const transitionLightValues = (function () {
       tempLights = getLightTransitionValues(tempLights, to);
       updateLEDLights(tempLights);
       if (lightsAreEqual(tempLights, to)) {
-        clearInterval(transitionInterval);
+        clearInterval();
         transitionInterval = null;
       }
     }, 100);
   };
 }());
 
-(function init() {
-  setWatch((function () {
-    const states = [playDuskDawnLights, playDaylights, playFireLights,
-      playDuskDawnLights, playOffLights,
-    ];
-    let currentStateIndex = 0;
-    let interval = null;
+setWatch((function () {
+  const states = [playDuskDawnLights, playDaylights, playFireLights,
+    playDuskDawnLights, playOffLights,
+  ];
+  let currentStateIndex = 0;
 
-    return () => {
-      if (Boolean(interval)) {
-        clearInterval(interval);
-      }
-
-      interval = states[currentStateIndex]();
-      currentStateIndex = (currentStateIndex + 1 >= states.length) ? 0 : currentStateIndex + 1;
-    };
-  }()), BTN, { edge: 'rising', repeat: true, debounce: 10 });
-}());
+  return () => {
+    clearInterval();
+    interval = states[currentStateIndex]();
+    currentStateIndex = (currentStateIndex + 1 >= states.length) ? 0 : currentStateIndex + 1;
+  };
+}()), BTN, { edge: 'rising', repeat: true, debounce: 10 });
