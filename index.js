@@ -83,19 +83,8 @@ const playFireLights = () => {
   setInterval(() => {
       updateLEDLights(randomFireLights());
     }, 75);
+  return randomFireLights();
 };
-
-const playOffLights = () => updateLEDLights(offLights);
-
-const playDuskDawnLights = () => updateLEDLights(duskDawnLights);
-
-const playLowDayLights = () => updateLEDLights(lowDayLights);
-
-const playMediumDayLights = () => updateLEDLights(mediumDayLights);
-
-const playHighDayLights = () => updateLEDLights(highDayLights);
-
-const playWhiteLights = () => updateLEDLights(whiteLights);
 
 /*
 * LED light controls
@@ -134,35 +123,36 @@ function lightsAreEqual(a, b) {
   return true;
 }
 
-const transitionLightValues = (function () {
-  let transitionInterval = null;
-  return function (from, to) {
-    if (transitionInterval) {
-      return transitionInterval;
+const transitionLightValues = (from, to, durationMs) => {
+  let tempLights = from;
+  setInterval(() => {
+    tempLights = getLightTransitionValues(tempLights, to, durationMs);
+    updateLEDLights(tempLights);
+    if (lightsAreEqual(tempLights, to)) {
+      clearInterval();
     }
-
-    let tempLights = from;
-    transitionInterval = setInterval(function () {
-      tempLights = getLightTransitionValues(tempLights, to);
-      updateLEDLights(tempLights);
-      if (lightsAreEqual(tempLights, to)) {
-        clearInterval();
-        transitionInterval = null;
-      }
-    }, 100);
-  };
-}());
+  }, durationMs);
+};
 
 setWatch((function () {
   const states = [
-    playDuskDawnLights, playLowDayLights, playMediumDayLights, playHighDayLights,
-    playWhiteLights, playFireLights, playDuskDawnLights, playOffLights,
+    offLights, duskDawnLights,
+    lowDayLights, mediumDayLights, highDayLights,
+    whiteLights, playFireLights, duskDawnLights,
   ];
   let currentStateIndex = 0;
-
+  let nextStateIndex;
+  let currentLights = states[0];
   return () => {
     clearInterval();
-    interval = states[currentStateIndex]();
-    currentStateIndex = (currentStateIndex + 1 >= states.length) ? 0 : currentStateIndex + 1;
+    nextStateIndex = (currentStateIndex + 1 >= states.length) ? 0 : currentStateIndex + 1;
+    if (typeof states[nextStateIndex] === 'function') {
+      currentLights = states[nextStateIndex]();
+    } else {
+      transitionLightValues(currentLights, states[nextStateIndex], 50);
+      currentLights = states[nextStateIndex];
+    }
+
+    currentStateIndex = nextStateIndex;
   };
 }()), BTN, { edge: 'rising', repeat: true, debounce: 10 });
