@@ -25,10 +25,37 @@ const duskDawnLights = (function () {
   return lights;
 }());
 
-const daylights = (function () {
+const lowDayLights = (function () {
   var lights = [];
   for (var i = 0; i < totalLEDs; i++) {
-    lights.push(150, 255, 255);
+    lights.push(0, 20, 150);
+  }
+
+  return lights;
+}());
+
+const mediumDayLights = (function () {
+  var lights = [];
+  for (var i = 0; i < totalLEDs; i++) {
+    lights.push(0, 100, 200);
+  }
+
+  return lights;
+}());
+
+const highDayLights = (function () {
+  var lights = [];
+  for (var i = 0; i < totalLEDs; i++) {
+    lights.push(3, 150, 255);
+  }
+
+  return lights;
+}());
+
+const whiteLights = (function () {
+  var lights = [];
+  for (var i = 0; i < totalLEDs; i++) {
+    lights.push(255, 255, 255);
   }
 
   return lights;
@@ -62,7 +89,13 @@ const playOffLights = () => updateLEDLights(offLights);
 
 const playDuskDawnLights = () => updateLEDLights(duskDawnLights);
 
-const playDaylights = () => updateLEDLights(daylights);
+const playLowDayLights = () => updateLEDLights(lowDayLights);
+
+const playMediumDayLights = () => updateLEDLights(mediumDayLights);
+
+const playHighDayLights = () => updateLEDLights(highDayLights);
+
+const playWhiteLights = () => updateLEDLights(whiteLights);
 
 /*
 * LED light controls
@@ -121,8 +154,9 @@ const transitionLightValues = (function () {
 }());
 
 setWatch((function () {
-  const states = [playDuskDawnLights, playDaylights, playFireLights,
-    playDuskDawnLights, playOffLights,
+  const states = [
+    playDuskDawnLights, playLowDayLights, playMediumDayLights, playHighDayLights,
+    playWhiteLights, playFireLights, playDuskDawnLights, playOffLights,
   ];
   let currentStateIndex = 0;
 
