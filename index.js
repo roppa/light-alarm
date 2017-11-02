@@ -1,5 +1,7 @@
 SPI2.setup({ baud: 3200000, mosi: B15 });
 
+const neopixel = require('neopixel');
+
 /*
 * Config
 */
@@ -91,7 +93,7 @@ const playFireLights = () => {
 */
 
 function updateLEDLights(lights) {
-  SPI2.send4bit(lights, 0b0001, 0b0011);
+  neopixel.write(B15, lights);
 }
 
 /*
