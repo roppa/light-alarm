@@ -1,6 +1,8 @@
 SPI2.setup({ baud: 3200000, mosi: B15 });
 
 const neopixel = require('neopixel');
+const Clock = require('clock').Clock;
+let clock = new Clock();
 
 /*
 * Config
@@ -81,12 +83,12 @@ const randomFireLights = (function () {
 * Light algorithms/functions
 */
 
-const playFireLights = () => {
+function playFireLights() {
   setInterval(() => {
       updateLEDLights(randomFireLights());
     }, 75);
   return randomFireLights();
-};
+}
 
 /*
 * LED light controls
@@ -99,6 +101,10 @@ function updateLEDLights(lights) {
 /*
 * Utils
 */
+
+function setClockMs(ms) {
+  return clock.setClock(ms);
+}
 
 function getLightTransitionValues(lightsFrom, lightsTo) {
   var transitionLights = [];
@@ -125,36 +131,64 @@ function lightsAreEqual(a, b) {
   return true;
 }
 
-const transitionLightValues = (from, to, durationMs) => {
+function transitionLightValues(from, to, durationMs) {
   let tempLights = from;
+  let duration = durationMs || 50;
   setInterval(() => {
-    tempLights = getLightTransitionValues(tempLights, to, durationMs);
+    tempLights = getLightTransitionValues(tempLights, to, duration);
     updateLEDLights(tempLights);
     if (lightsAreEqual(tempLights, to)) {
       clearInterval();
     }
-  }, durationMs);
-};
+  }, duration);
+}
 
-setWatch((function () {
-  const states = [
-    offLights, duskDawnLights,
-    lowDayLights, mediumDayLights, highDayLights,
-    whiteLights, playFireLights, duskDawnLights,
-  ];
+const states = [
+  offLights, duskDawnLights,
+  lowDayLights, mediumDayLights, highDayLights,
+  whiteLights, playFireLights, duskDawnLights,
+];
+
+function getNextArrayIndex(currentIndex, array) {
+  return (currentIndex + 1 >= array.length) ? 0 : currentIndex + 1;
+}
+
+function isFunction(object) {
+  return typeof object === 'function';
+}
+
+function switchLights() {
+  let currentStateIndex = 0;
+  return () => {
+    clearInterval();
+    nextStateIndex = getNextArrayIndex(currentStateIndex, states);
+    if (isFunction(states[nextStateIndex])) {
+      currentLights = states[nextStateIndex]();
+    } else {
+      currentLights = states[nextStateIndex];
+      updateLEDLights(currentLights);
+    }
+
+    currentStateIndex = nextStateIndex;
+  };
+}
+
+function transitionLights() {
   let currentStateIndex = 0;
   let nextStateIndex;
   let currentLights = states[0];
   return () => {
     clearInterval();
-    nextStateIndex = (currentStateIndex + 1 >= states.length) ? 0 : currentStateIndex + 1;
-    if (typeof states[nextStateIndex] === 'function') {
+    nextStateIndex = getNextArrayIndex(currentStateIndex, states);
+    if (isFunction(states[nextStateIndex])) {
       currentLights = states[nextStateIndex]();
     } else {
-      transitionLightValues(currentLights, states[nextStateIndex], 50);
+      transitionLightValues(currentLights, states[nextStateIndex]);
       currentLights = states[nextStateIndex];
     }
 
     currentStateIndex = nextStateIndex;
   };
-}()), BTN, { edge: 'rising', repeat: true, debounce: 10 });
+}
+
+setWatch(switchLights(), BTN, { edge: 'rising', repeat: true, debounce: 10 });
